@@ -1,9 +1,12 @@
-from typing import Union
-
 from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import APIRouter
 
-app = FastAPI()
+app = FastAPI(title="AI Store Assistant", description="AI Store Assistant is a tool that helps you manage your store")
+router = APIRouter()
+
+@router.get("/users/", tags=["users"])
+async def read_users():
+    return [{"username": "Rick"}, {"username": "Morty"}]
 
 class Item(BaseModel):
     name: str
@@ -21,3 +24,5 @@ def read_item(item_id: int, q: Union[str, None] = None):
 @app.put("/items/{item_id}")
 def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
+
+app.include_router(router=router)
