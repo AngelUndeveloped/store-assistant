@@ -1,27 +1,19 @@
 """
 Natural Language Processing Service Module
 
-This module provides functionality for text generation using the Hugging Face Transformers library.
-It uses the Qwen3-8B model for generating responses to user prompts.
-The service handles text generation with configurable parameters for response length and quality.
+This module provides functionality for text generation using LM Studio's local API.
+It connects to a locally running LM Studio instance for generating responses to user prompts.
+The service handles text generation through HTTP requests to the local API.
 """
 
-from transformers import pipeline
-import torch
+import requests
 
-# Check if CUDA is available and set device accordingly
-device = 0 if torch.cuda.is_available() else -1
-
-chatbot = pipeline(
-    "text-generation",
-    model="Qwen/Qwen3-8B",
-    device=device,
-    torch_dtype=torch.float16 if device == 0 else torch.float32
-)
+# LM Studio API endpoint (default when running locally)
+API_URL = "http://localhost:1234/v1/chat/completions"
 
 def generate_response(prompt: str) -> str:
     """
-    Generates a text response based on the given prompt using the Qwen model.
+    Generates a text response based on the given prompt using LM Studio's local API.
     
     Args:
         prompt (str): The input text prompt to generate a response for.
@@ -30,8 +22,30 @@ def generate_response(prompt: str) -> str:
         str: The generated text response.
         
     Raises:
+        ConnectionError: If unable to connect to LM Studio API.
         ValueError: If the prompt is empty or invalid.
-        RuntimeError: If there's an error with the model or generation process.
+        RuntimeError: If there's an error with the API response.
     """
-    result = chatbot(prompt, max_length=100, num_return_sequences=1)
-    return result[0]["generated_text"]
+    try:
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 100
+        }
+
+        response = requests.post(API_URL, headers=headers, json=data, timeout=10)
+        response.raise_for_status()
+
+        return response.json()["choices"][0]["message"]["content"]
+    except requests.exceptions.ConnectionError as exc:
+        raise ConnectionError("Could not connect to LM Studio API.") from exc
+    except (KeyError, IndexError) as e:
+        raise RuntimeError(f"Unexpected API response format: {str(e)}") from e
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"API request failed: {str(e)}") from e
