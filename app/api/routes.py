@@ -11,6 +11,7 @@ endpoints for handling file uploads and audio processing.
 """
 
 from fastapi import APIRouter, UploadFile, File
+from fastapi.responses import FileResponse
 from app.services.stt_service import transcribe_audio
 from app.services.tts_service import text_to_speech
 
@@ -52,9 +53,24 @@ async def speech_to_text(audio: UploadFile = File(...)):
         return {"error": str(e)}
 
 @router.post("/text-to-speech")
-async def generate_speech(text: str) -> StreamingResponse:
+async def generate_audio(text: str):
+    """
+    Endpoint to convert text to speech.
+    
+    Args:
+        text (str): The text to be converted to speech.
+    
+    Returns:
+        dict: A dictionary containing either:
+            - On success: {"audio": bytes} with the audio data
+            - On error: {"error": str} with the error message
+    
+    Note:
+        This endpoint converts the provided text into speech audio.
+        The audio is returned as binary data that can be played or saved as an audio file.
+    """
     try:
-        audio_file_path = text_to_speech(text)
-        return FileResponse(path=audio_file_path, media_type="audio/mp3", filename="response.mp3")
-    except Exception as e:
+        audio_path = text_to_speech(text)
+        return FileResponse(path=audio_path, media_type="audio/webm", filename="response.webm")
+    except (IOError, ValueError) as e:
         return {"error": str(e)}
