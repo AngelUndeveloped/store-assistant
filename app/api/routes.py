@@ -12,6 +12,7 @@ endpoints for handling file uploads and audio processing.
 
 from fastapi import APIRouter, UploadFile, File
 from app.services.stt_service import transcribe_audio
+from app.services.tts_service import text_to_speech
 
 router = APIRouter()
 
@@ -26,7 +27,7 @@ async def root():
     """
     return {"message": "Store Assistant API is running."}
 
-@router.post("/speech-to-text/")
+@router.post("/speech-to-text")
 async def speech_to_text(audio: UploadFile = File(...)):
     """
     Endpoint to convert speech from an audio file to text.
@@ -48,4 +49,12 @@ async def speech_to_text(audio: UploadFile = File(...)):
         text = transcribe_audio(audio)
         return {"text": text}
     except (IOError, ValueError) as e:
+        return {"error": str(e)}
+
+@router.post("/text-to-speech")
+async def generate_speech(text: str) -> StreamingResponse:
+    try:
+        audio_file_path = text_to_speech(text)
+        return FileResponse(path=audio_file_path, media_type="audio/mp3", filename="response.mp3")
+    except Exception as e:
         return {"error": str(e)}
