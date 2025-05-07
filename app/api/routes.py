@@ -12,6 +12,7 @@ endpoints for handling file uploads and audio processing.
 
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import FileResponse
+from app.services.nlp_service import generate_response
 from app.services.stt_service import transcribe_audio
 from app.services.tts_service import text_to_speech
 
@@ -72,5 +73,28 @@ async def generate_audio(text: str):
     try:
         audio_path = text_to_speech(text)
         return FileResponse(path=audio_path, media_type="audio/mp3", filename="response.mp3")
+    except (IOError, ValueError) as e:
+        return {"error": str(e)}
+
+@router.post("/nlp")
+async def chat_with_assistant(prompt: str):
+    """
+    Endpoint to generate a response using the NLP model.
+    
+    Args:
+        prompt (str): The text prompt to generate a response for.
+    
+    Returns:
+        dict: A dictionary containing either:
+            - On success: {"response": str} with the generated text response
+            - On error: {"error": str} with the error message
+    
+    Note:
+        This endpoint uses the Google Gemini model for text generation.
+        The response is generated based on the provided prompt.
+    """
+    try:
+        response = generate_response(prompt)
+        return {"response": response}
     except (IOError, ValueError) as e:
         return {"error": str(e)}
