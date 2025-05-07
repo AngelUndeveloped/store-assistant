@@ -71,6 +71,6 @@ async def generate_audio(text: str):
     """
     try:
         audio_path = text_to_speech(text)
-        return FileResponse(path=audio_path, media_type="audio/webm", filename="response.webm")
+        return FileResponse(path=audio_path, media_type="audio/mp3", filename="response.mp3")
     except (IOError, ValueError) as e:
         return {"error": str(e)}
