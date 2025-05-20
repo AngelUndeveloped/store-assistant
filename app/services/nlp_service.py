@@ -1,72 +1,62 @@
 """
 Natural Language Processing Service Module
 
-This module provides functionality for text generation using LM Studio's local API.
-It connects to a locally running LM Studio instance for generating responses to user prompts.
-The service handles text generation through HTTP requests to the local API.
+This module provides functionality for text generation using either LM Studio's local API
+or Google's Gemini API. It handles text generation through HTTP requests to the local API
+or direct calls to the Gemini API.
 """
 
-import requests
 import logging
-import base64
-import os
-from google import genai
-from google.genai import types
+from enum import Enum
+from .nlp.lm_studio_provider import LMStudioProvider
+from .nlp.gemini_provider import GeminiProvider
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# For local developement, use lm studio api endpoint, validate lm studio server settings
-API_URL = "http://192.168.0.220:1234/v1/chat/completions"
+class ModelProvider(Enum):
+    """Enum for available model providers"""
+    LM_STUDIO = "lm_studio"
+    GEMINI = "gemini"
 
-# For production, use gemini api endpoint
-
-
-
-def generate_response(prompt: str, model: str) -> str:
+def get_provider(provider: ModelProvider) -> LMStudioProvider | GeminiProvider:
     """
-    Generates a text response based on the given prompt using LM Studio's local API.
+    Get the appropriate provider instance
     
     Args:
-        prompt (str): The input text prompt to generate a response for.
-    
+        provider (ModelProvider): The provider to use
+        
     Returns:
-        str: The generated text response.
+        LMStudioProvider | GeminiProvider: The provider instance
         
     Raises:
-        ConnectionError: If unable to connect to LM Studio API.
-        ValueError: If the prompt is empty or invalid.
-        RuntimeError: If there's an error with the API response.
+        ValueError: If the provider is not supported
+    """
+    if provider == ModelProvider.LM_STUDIO:
+        return LMStudioProvider()
+    elif provider == ModelProvider.GEMINI:
+        return GeminiProvider()
+    else:
+        raise ValueError(f"Unsupported model provider: {provider}")
+
+def generate_response(prompt: str, provider: ModelProvider = ModelProvider.LM_STUDIO) -> str:
+    """
+    Generate a response using the specified provider
+    
+    Args:
+        prompt (str): The input prompt
+        provider (ModelProvider): The provider to use (default: LM_STUDIO)
+        
+    Returns:
+        str: The generated response
+        
+    Raises:
+        Exception: If there's an error generating the response
     """
     try:
-        headers = {
-            "Content-Type": "application/json"
-        }
-
-        data = {
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7,
-            "max_tokens": 1000
-        }
-
-        logger.debug(f"Attempting to connect to LM Studio at: {API_URL}")
-        logger.debug(f"Request data: {data}")
-        
-        response = requests.post(url=API_URL, headers=headers, json=data, timeout=10)
-        logger.debug(f"Response status code: {response.status_code}")
-        logger.debug(f"Response content: {response.text}")
-        
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except requests.exceptions.ConnectionError as exc:
-        logger.error(f"Connection error: {str(exc)}")
-        raise ConnectionError("Could not connect to LM Studio API. Please ensure LM Studio is running and accessible.") from exc
-    except (KeyError, IndexError) as e:
-        logger.error(f"Unexpected API response format: {str(e)}")
-        raise RuntimeError(f"Unexpected API response format: {str(e)}") from e
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API request failed: {str(e)}")
-        raise RuntimeError(f"API request failed: {str(e)}") from e
+        nlp_provider = get_provider(provider)
+        return nlp_provider.generate_response(prompt)
+    except Exception as e:
+        logger.error(f"Error generating response: {str(e)}")
+        raise
