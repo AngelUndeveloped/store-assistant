@@ -12,7 +12,7 @@ endpoints for handling file uploads and audio processing.
 
 from fastapi import APIRouter, UploadFile, File
 from fastapi.responses import FileResponse
-from app.services.nlp_service import generate_response
+from app.services.nlp_service import ModelProvider, generate_response
 from app.services.stt_service import transcribe_audio
 from app.services.tts_service import text_to_speech
 
@@ -77,12 +77,14 @@ async def generate_audio(text: str):
         return {"error": str(e)}
 
 @router.post("/nlp")
-async def chat_with_assistant(prompt: str):
+async def chat_with_assistant(prompt: str, provider: str="lm_studio") -> dict:
     """
     Endpoint to generate a response using the NLP model.
     
     Args:
         prompt (str): The text prompt to generate a response for.
+        provider (str): The model provider to use. Options: "lm_studio" or "gemini"
+            (default: "lm_studio")
     
     Returns:
         dict: A dictionary containing either:
@@ -90,11 +92,19 @@ async def chat_with_assistant(prompt: str):
             - On error: {"error": str} with the error message
     
     Note:
-        This endpoint uses the Google Gemini model for text generation.
-        The response is generated based on the provided prompt.
+        This endpoint supports multiple model providers:
+        - LM Studio: Local model inference (requires LM Studio to be running)
+        - Gemini: Google's Gemini API (requires GEMINI_API_KEY in environment)
     """
     try:
-        response = generate_response(prompt)
+        model_provider = ModelProvider(provider.lower())
+        response = generate_response(prompt, provider=model_provider)
         return {"response": response}
-    except (IOError, ValueError) as e:
-        return {"error": str(e)}
+    except ValueError as e:
+        return {"error": f"Invalid provider: {str(e)}"}
+    except RuntimeError as e:
+        return {"error": f"Error generating response: {str(e)}"}
+    except ConnectionError as e:
+        return {"error": f"Failed to connect to model service: {str(e)}"}
+    except TimeoutError as e:
+        return {"error": f"Request timed out: {str(e)}"}
