@@ -58,5 +58,5 @@ def generate_response(prompt: str, provider: ModelProvider = ModelProvider.LM_ST
         nlp_provider = get_provider(provider)
         return nlp_provider.generate_response(prompt)
     except Exception as e:
-        logger.error(f"Error generating response: {str(e)}")
+        logger .error("Error generating response: %s", str(e))
         raise

@@ -30,5 +30,5 @@ def text_to_speech(text: str) -> str:
         tmp_file_path = tmp_file.name
         engine.save_to_file(text, tmp_file_path)
         engine.runAndWait()
-
+    
     return tmp_file_path

@@ -20,4 +20,3 @@ class NLPProvider(ABC):
         Raises:
             Exception: If there's an error generating the response
         """
-        pass 
