@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+test_*.py
+*.mp3
+*.webm
+test_notebook.ipynb
+.env
