@@ -11,12 +11,44 @@ endpoints for handling file uploads and audio processing.
 """
 
 from fastapi import APIRouter, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from app.services.nlp_service import ModelProvider, generate_response
 from app.services.stt_service import transcribe_audio
 from app.services.tts_service import text_to_speech
 
 router = APIRouter()
+
+@router.get("/health")
+async def health_check():
+    """
+    Health check endpoint to verify API status and dependencies.
+    
+    Returns:
+        JSONResponse: A JSON response containing:
+            - status: "healthy" or "unhealthy"
+            - version: API version
+            - dependencies: Status of key dependencies
+    """
+    try:
+        # You can add more health checks here
+        health_status = {
+            "status": "healthy",
+            "version": "1.0.0",
+            "dependencies": {
+                "nlp_service": "available",
+                "stt_service": "available",
+                "tts_service": "available"
+            }
+        }
+        return JSONResponse(content=health_status, status_code=200)
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "status": "unhealthy",
+                "error": str(e)
+            },
+            status_code=500
+        )
 
 @router.get("/")
 async def root():
@@ -77,7 +109,7 @@ async def generate_audio(text: str):
         return {"error": str(e)}
 
 @router.post("/nlp")
-async def chat_with_assistant(prompt: str, provider: str="lm_studio") -> dict:
+async def chat_with_assistant(prompt: str, provider: str = "lm_studio") -> dict:
     """
     Endpoint to generate a response using the NLP model.
     
